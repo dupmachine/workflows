@@ -134,6 +134,14 @@ Used from your repo's `release.yml`:
     tag: ${{ github.ref_name }}
 ```
 
+To attach artifacts, upload them separately after the action:
+
+```yaml
+- run: gh release upload "${{ github.ref_name }}" my-artifact.zip
+  env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
 ## Config overrides
 
 | Linter | Rule | Default | Here | Reason |
