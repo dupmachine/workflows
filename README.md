@@ -1,6 +1,6 @@
-# dupmachine/baseline
+# rubykatzen/baseline
 
-Shared linter configs and reusable workflows for all dupmachine repositories.
+Shared linter configs and composite GitHub Actions for all dupmachine repositories.
 
 ## Linters
 
@@ -10,7 +10,7 @@ Shared linter configs and reusable workflows for all dupmachine repositories.
 | [pymarkdown](https://github.com/jackdewinter/pymarkdown) | `*.md` | `configs/pymarkdown.json` |
 | [ruff](https://github.com/astral-sh/ruff) | `*.py` | `configs/ruff.toml` |
 | [shellcheck](https://github.com/koalaman/shellcheck) | `*.sh` | `configs/shellcheck.rc` |
-| [actionlint](https://github.com/rhysd/actionlint) | `.github/workflows/*.yml` | — |
+| [actionlint](https://github.com/rhysd/actionlint) | `.github/workflows/*.yml`, `.github/workflows/*.yaml` | — |
 
 ## Overrides
 
@@ -36,8 +36,8 @@ Copy `.pre-commit-config.yaml.example` to your repo as `.pre-commit-config.yaml`
 
 ```yaml
 repos:
-  - repo: https://github.com/dupmachine/baseline
-    rev: main
+  - repo: git@github.com:rubykatzen/baseline.git
+    rev: v0.0.6
     hooks:
       - id: yamllint
       - id: pymarkdown
@@ -46,7 +46,13 @@ repos:
       - id: actionlint
 ```
 
-Required system dependencies: `pip install yamllint pymarkdownlnt ruff`, `brew install shellcheck actionlint`.
+The pre-commit hooks use system-installed tools. Install them before running
+the hooks:
+
+```bash
+python -m pip install yamllint pymarkdownlnt ruff
+brew install shellcheck actionlint
+```
 
 ### GitHub Actions
 
@@ -63,11 +69,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: dupmachine/baseline/.github/actions/lint-yamllint@latest
-      - uses: dupmachine/baseline/.github/actions/lint-pymarkdown@latest
-      - uses: dupmachine/baseline/.github/actions/lint-ruff@latest
-      - uses: dupmachine/baseline/.github/actions/lint-shellcheck@latest
-      - uses: dupmachine/baseline/.github/actions/lint-actionlint@latest
+      - uses: rubykatzen/baseline/.github/actions/lint-yamllint@v0.0.6
+      - uses: rubykatzen/baseline/.github/actions/lint-pymarkdown@v0.0.6
+      - uses: rubykatzen/baseline/.github/actions/lint-ruff@v0.0.6
+      - uses: rubykatzen/baseline/.github/actions/lint-shellcheck@v0.0.6
+      - uses: rubykatzen/baseline/.github/actions/lint-actionlint@v0.0.6
 ```
 
 ## Adding a new linter

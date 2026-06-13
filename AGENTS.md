@@ -31,14 +31,14 @@ To add a linter for a new file type:
 
 Baseline lints itself through `.github/workflows/lint.yml` using local composite
 actions (`./.github/actions/lint-*`). Do not point the baseline self-lint
-workflow at `dupmachine/baseline@latest`; it must validate the actions and
+workflow at `rubykatzen/baseline@latest`; it must validate the actions and
 configs from the current commit.
 
 ## Linter Selection
 
 For language-agnostic file types (YAML, Markdown, shell, etc.), always choose the linter implemented in the highest-priority runtime:
 
-**Python > TypeScript > everything else**
+Priority order: Python > TypeScript > everything else.
 
 This avoids introducing new runtimes into repos that don't already use them.
 
