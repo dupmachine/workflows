@@ -8,10 +8,6 @@ inputs:
     description: Release tag. Defaults to the first eight characters of GITHUB_SHA.
     required: false
     default: ""
-  artifact-path:
-    description: Path to a file to attach to the release.
-    required: false
-    default: ""
   release-repo:
     description: GitHub repository to publish the release to. Defaults to current repository.
     required: false
@@ -63,31 +59,19 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         REQUESTED_TAG: ${{ inputs.tag }}
-        ARTIFACT_PATH: ${{ inputs.artifact-path }}
         INPUT_RELEASE_REPO: ${{ inputs.release-repo }}
       run: |
         set -euo pipefail
         tag="$REQUESTED_TAG"
         [ -z "$tag" ] && tag="${GITHUB_SHA:0:8}"
         release_repo="${INPUT_RELEASE_REPO:-$GITHUB_REPOSITORY}"
-        if gh release view "$tag" --repo "$release_repo" >/dev/null 2>&1; then
-          [ -n "$ARTIFACT_PATH" ] && gh release upload "$tag" "$ARTIFACT_PATH" --repo "$release_repo" --clobber
-        else
-          if [ -n "$ARTIFACT_PATH" ]; then
-            gh release create "$tag" "$ARTIFACT_PATH" \
-              --repo "$release_repo" \
-              --target "$GITHUB_SHA" \
-              --title "$tag" \
-              --notes-file /tmp/release-notes.md \
-              --latest=false
-          else
-            gh release create "$tag" \
-              --repo "$release_repo" \
-              --target "$GITHUB_SHA" \
-              --title "$tag" \
-              --notes-file /tmp/release-notes.md \
-              --latest=false
-          fi
+        if ! gh release view "$tag" --repo "$release_repo" >/dev/null 2>&1; then
+          gh release create "$tag" \
+            --repo "$release_repo" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --notes-file /tmp/release-notes.md \
+            --latest=false
         fi
         echo "tag=$tag" >> "$GITHUB_OUTPUT"
     - name: Update changelog
