@@ -1,4 +1,4 @@
-name: Auto-merge Dependabot
+name: Merge Dependabot
 on:
   workflow_call:
 jobs:
