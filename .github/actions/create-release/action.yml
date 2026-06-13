@@ -121,7 +121,7 @@ runs:
         fi
         update_payload=$(jq -n \
           --arg message "chore: update changelog for ${tag}" \
-          --arg content "$(printf '%s' "$new_content" | base64 -w 0)" \
+          --arg content "$(printf '%s\n' "$new_content" | base64 -w 0)" \
           --arg sha "$current_sha" \
           'if $sha == "" then {message: $message, content: $content} else {message: $message, content: $content, sha: $sha} end')
         curl -sf -X PUT \
