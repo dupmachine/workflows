@@ -1,62 +1,12 @@
 # rubykatzen/baseline
 
-Shared linter configs and composite GitHub Actions for all dupmachine repositories.
+Shared linter configs, composite GitHub Actions, and reusable workflows for all rubykatzen/dupmachine repositories.
 
-## Linters
+## Quick setup
 
-| Linter | Files | Config |
-|--------|-------|--------|
-| [yamllint](https://github.com/adrienverge/yamllint) | `*.yml`, `*.yaml` | `configs/yamllint.yml` |
-| [pymarkdown](https://github.com/jackdewinter/pymarkdown) | `*.md` | `configs/pymarkdown.json` |
-| [ruff](https://github.com/astral-sh/ruff) | `*.py` | `configs/ruff.toml` |
-| [shellcheck](https://github.com/koalaman/shellcheck) | `*.sh` | `configs/shellcheck.rc` |
-| [actionlint](https://github.com/rhysd/actionlint) | `.github/workflows/*.yml`, `.github/workflows/*.yaml` | — |
+### 1. Lint workflow
 
-## Overrides
-
-| Linter | Rule | Default | Here | Reason |
-|--------|------|---------|------|--------|
-| yamllint | `line-length` | enabled (max 80) | disabled | Traefik labels in docker-compose files (e.g. `traefik.http.routers.${APP_NAME}.tls.certresolver=...`) routinely exceed 80 chars and cannot be meaningfully wrapped |
-| pymarkdown | MD013 line-length | enabled | disabled | Tables and inline code references in README files break when wrapped |
-| pymarkdown | MD026 trailing-punctuation | enabled | disabled | AGENTS.md files use `Setup:`, `Usage:`, `Configuration:` as section headings by convention |
-| pymarkdown | MD034 no-bare-urls | enabled | disabled | AGENTS.md files reference internal URLs (e.g. Semaphore) inline without link syntax |
-| pymarkdown | MD024 no-duplicate-heading | enabled (strict) | `allow_different_nesting: true` | Playbook docs repeat identical subheadings (e.g. `### Usage example`) under each playbook section |
-| ruff | E501 line-length | enabled (max 88) | disabled | Long error messages and inline expressions in Python scripts exceed 88 chars and cannot be meaningfully wrapped |
-| shellcheck | SC1090/SC1091 | enabled | disabled | Dynamic `source` of `lib.sh` and `.env` — shellcheck can't follow them but they are always present at runtime |
-| shellcheck | SC2029 | enabled | disabled | Variables in SSH commands intentionally expand on the client side before being passed to the remote shell |
-| shellcheck | SC2088 | enabled | disabled | Tilde in remote path strings is intentionally passed as-is to the remote shell via SSH, not expanded locally |
-| shellcheck | SC2153/SC2154 | enabled | disabled | Variables set by `parse_apps` in `lib.sh` are not visible to shellcheck due to SC1091 |
-| shellcheck | SC2001 | enabled | disabled | Style preference: `sed` is clearer than bash parameter expansion for regex substitution |
-
-## Usage
-
-### Pre-commit
-
-Copy `.pre-commit-config.yaml.example` to your repo as `.pre-commit-config.yaml`, or add the hooks to your existing config:
-
-```yaml
-repos:
-  - repo: git@github.com:rubykatzen/baseline.git
-    rev: v0.0.6
-    hooks:
-      - id: yamllint
-      - id: pymarkdown
-      - id: ruff
-      - id: shellcheck
-      - id: actionlint
-```
-
-The pre-commit hooks use system-installed tools. Install them before running
-the hooks:
-
-```bash
-python -m pip install yamllint pymarkdownlnt ruff
-brew install shellcheck actionlint
-```
-
-### GitHub Actions
-
-Add the composite lint actions to your `lint.yml` workflow:
+Create `.github/workflows/lint.yml`. Include only the linters relevant to your stack:
 
 ```yaml
 name: Lint
@@ -69,13 +19,131 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: rubykatzen/baseline/.github/actions/lint-yamllint@v0.0.6
-      - uses: rubykatzen/baseline/.github/actions/lint-pymarkdown@v0.0.6
-      - uses: rubykatzen/baseline/.github/actions/lint-ruff@v0.0.6
-      - uses: rubykatzen/baseline/.github/actions/lint-shellcheck@v0.0.6
-      - uses: rubykatzen/baseline/.github/actions/lint-actionlint@v0.0.6
+      - uses: rubykatzen/baseline/.github/actions/lint-yamllint@v0.0.11
+      - uses: rubykatzen/baseline/.github/actions/lint-pymarkdown@v0.0.11
+      - uses: rubykatzen/baseline/.github/actions/lint-ruff@v0.0.11
+      - uses: rubykatzen/baseline/.github/actions/lint-shellcheck@v0.0.11
+      - uses: rubykatzen/baseline/.github/actions/lint-actionlint@v0.0.11
 ```
 
-## Adding a new linter
+Each action installs its own tool — no setup step needed.
 
-See `AGENTS.md`.
+### 2. Dependabot
+
+Add `.github/dependabot.yml` to keep the version pin current automatically:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+```
+
+### 3. Auto-merge Dependabot PRs (optional)
+
+Create `.github/workflows/dependabot-automerge.yml`:
+
+```yaml
+name: Dependabot Automerge
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+jobs:
+  merge:
+    uses: rubykatzen/baseline/.github/workflows/dependabot-automerge.yml@v0.0.11
+    secrets: inherit
+```
+
+Merges all Dependabot PRs immediately without waiting for CI.
+
+### 4. Telegram release notifications (optional)
+
+Create `.github/workflows/telegram-release-notify.yml`.
+Requires `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` secrets in the repo.
+
+```yaml
+name: Telegram Release Notify
+on:
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+jobs:
+  notify:
+    uses: rubykatzen/baseline/.github/workflows/telegram-release-notify.yml@v0.0.11
+    secrets: inherit
+```
+
+Sends a Telegram message when `main` is broken or has unreleased commits.
+Cron schedule is configurable per repo.
+
+---
+
+## Composite actions (linters)
+
+| Action | Lints | Config |
+|---|---|---|
+| `lint-yamllint` | `*.yml`, `*.yaml` | `configs/yamllint.yml` |
+| `lint-pymarkdown` | `*.md` | `configs/pymarkdown.json` |
+| `lint-ruff` | `*.py` | `configs/ruff.toml` |
+| `lint-shellcheck` | `*.sh` | `configs/shellcheck.rc` |
+| `lint-actionlint` | `.github/workflows/*.yml` | — |
+
+## Reusable workflows
+
+| Workflow | Trigger in caller | What it does |
+|---|---|---|
+| `dependabot-automerge.yml` | `pull_request_target` | Merges Dependabot PRs immediately |
+| `telegram-release-notify.yml` | `schedule` / `workflow_dispatch` | Notifies Telegram when main is broken or has unreleased commits |
+
+## create-release action
+
+Publishes a GitHub release, generates AI release notes, and updates `CHANGELOG.md`.
+Used from your repo's `release.yml`:
+
+```yaml
+- uses: rubykatzen/baseline/.github/actions/create-release@v0.0.11
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    tag: ${{ github.ref_name }}
+```
+
+## Config overrides
+
+| Linter | Rule | Default | Here | Reason |
+|---|---|---|---|---|
+| yamllint | `line-length` | enabled (max 80) | disabled | Traefik labels in docker-compose files routinely exceed 80 chars |
+| pymarkdown | MD013 line-length | enabled | disabled | Tables and inline code in README files break when wrapped |
+| pymarkdown | MD026 trailing-punctuation | enabled | disabled | `Setup:`, `Usage:` headings by convention |
+| pymarkdown | MD034 no-bare-urls | enabled | disabled | Internal URLs referenced inline without link syntax |
+| pymarkdown | MD024 no-duplicate-heading | strict | `allow_different_nesting: true` | Repeated subheadings under each section |
+| ruff | E501 line-length | enabled (max 88) | disabled | Long error messages and inline expressions |
+| shellcheck | SC1090/SC1091 | enabled | disabled | Dynamic `source` of `lib.sh` and `.env` |
+| shellcheck | SC2029 | enabled | disabled | Variables in SSH commands expand client-side intentionally |
+| shellcheck | SC2088 | enabled | disabled | Tilde in remote paths passed as-is to remote shell |
+| shellcheck | SC2153/SC2154 | enabled | disabled | Variables set by `parse_apps` in `lib.sh` not visible to shellcheck |
+| shellcheck | SC2001 | enabled | disabled | `sed` preferred over bash parameter expansion for regex substitution |
+
+## Pre-commit hooks
+
+Copy `.pre-commit-config.yaml.example` to your repo or add to your existing config:
+
+```yaml
+repos:
+  - repo: git@github.com:rubykatzen/baseline.git
+    rev: v0.0.11
+    hooks:
+      - id: yamllint
+      - id: pymarkdown
+      - id: ruff
+      - id: shellcheck
+      - id: actionlint
+```
+
+Install the tools before running hooks:
+
+```bash
+python -m pip install yamllint pymarkdownlnt ruff
+brew install shellcheck actionlint
+```

@@ -10,8 +10,12 @@ This repo is the single source of truth for linter configs across all dupmachine
 
 - `configs/` — canonical linter config files
 - `hooks/` — shell script wrappers for pre-commit (`language: script`)
-- `.github/actions/` — reusable composite GitHub Actions for linting and releases
-- `.github/workflows/` — repository-owned workflows for baseline linting and releases
+- `.github/actions/lint-*/` — composite actions, one per linter
+- `.github/actions/create-release/` — composite action: publish release, AI notes, update CHANGELOG
+- `.github/workflows/lint.yml` — baseline self-lint (uses local actions, not `@vX`)
+- `.github/workflows/release.yml` — cuts baseline releases via `create-release` action
+- `.github/workflows/dependabot-automerge.yml` — reusable: merges Dependabot PRs immediately
+- `.github/workflows/telegram-release-notify.yml` — reusable: checks main CI + unreleased commits, notifies Telegram
 - `.pre-commit-hooks.yaml` — hook definitions for pre-commit
 - `.pre-commit-config.yaml.example` — example for consuming repos
 
@@ -27,11 +31,21 @@ To add a linter for a new file type:
 6. Update `.pre-commit-config.yaml.example`
 7. Update `README.md`
 
+## Reusable workflows
+
+`dependabot-automerge.yml` and `telegram-release-notify.yml` are `workflow_call`
+workflows consumed by other repos. They are NOT called from baseline's own workflows.
+When editing them, test by dispatching from a consumer repo, not from baseline directly.
+
+`telegram-release-notify.yml` requires `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
+secrets in the calling repo. It checks the latest `lint.yml` run on `main` and
+the number of commits since the last semver tag.
+
 ## Self-linting
 
 Baseline lints itself through `.github/workflows/lint.yml` using local composite
 actions (`./.github/actions/lint-*`). Do not point the baseline self-lint
-workflow at `rubykatzen/baseline@latest`; it must validate the actions and
+workflow at `rubykatzen/baseline@vX`; it must validate the actions and
 configs from the current commit.
 
 ## Linter Selection
