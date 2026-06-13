@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.0.12] - 2026-06-13
+
+- add pre-commit-autoupdate reusable workflow
+- use VERSION placeholder instead of pinned version in README
+- update README and AGENTS.md with reusable workflows and current version
+- chore: update changelog for v0.0.11
+
 ## [v0.0.11] - 2026-06-13
 
 - fix changelog trailing newline in create-release action
